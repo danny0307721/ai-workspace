@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model ImportEntry {
+  id            String   @id @default(cuid())
+  date          DateTime
+  supplier      String
+  product       String
+  quantity      Decimal  @db.Decimal(14, 3)
+  unitCost      Decimal  @db.Decimal(14, 2)
+  shippingCost  Decimal  @default(0) @db.Decimal(14, 2)
+  taxCost       Decimal  @default(0) @db.Decimal(14, 2)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SaleEntry {
+  id            String   @id @default(cuid())
+  date          DateTime
+  customer      String?
+  product       String
+  quantity      Decimal  @db.Decimal(14, 3)
+  unitPrice     Decimal  @db.Decimal(14, 2)
+  discount      Decimal  @default(0) @db.Decimal(14, 2)
+  otherCost     Decimal  @default(0) @db.Decimal(14, 2)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
