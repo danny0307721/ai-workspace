@@ -70,6 +70,8 @@ export default function Home() {
         <p>Import and sales performance at a glance.</p>
       </header>
       {analyzing && <p className="analysis-status" role="status" aria-live="polite">Thinking...</p>}
+      <div className="overview-layout">
+        <div className="overview-main">
       {summary && <section className="grid">
         <Card title="Sales revenue" value={money(summary.sales.revenue)} />
         <Card title="Estimated profit" value={money(summary.estimatedProfit)} />
@@ -79,12 +81,6 @@ export default function Home() {
       {summary && <p className="calculation-note">
         Profit estimate uses weighted-average landed cost by product, including import shipping and tax, plus recorded sale costs. It does not model inventory timing.
       </p>}
-      {inventory.length > 0 && <section className="panel">
-        <h2>Lowest stock</h2>
-        <ul className="stock-list">{inventory.slice(0, 10).map((item) => <li key={item.product}>
-          <span>{item.product}</span><strong>{item.onHand.toFixed(3)}</strong>
-        </li>)}</ul>
-      </section>}
       {productHighlights && <section className="product-highlights">
         <div className="product-highlight"><span>Best-selling product</span><strong>{productHighlights.bestSelling.product}</strong><small>{productHighlights.bestSelling.quantity.toFixed(3)} units sold</small></div>
         <div className="product-highlight"><span>Highest-profit product</span><strong>{productHighlights.highestProfit.product}</strong><small>{money(productHighlights.highestProfit.estimatedProfit)} estimated profit</small></div>
@@ -102,6 +98,14 @@ export default function Home() {
           ? <ul>{(tips.importRecommendations as ImportRecommendation[]).map((item, index) => <li key={index}><strong>{item.product}</strong> ({item.urgency}): {item.reason} Suggested quantity: {item.suggestedQuantity}.</li>)}</ul>
           : <p>No import recommendations from the current stock data.</p>}
       </section>}
+        </div>
+        {inventory.length > 0 && <aside className="panel overview-stock-sidebar">
+          <h2>Lowest stock</h2>
+          <ul className="stock-list">{inventory.slice(0, 10).map((item) => <li key={item.product}>
+            <span>{item.product}</span><strong>{item.onHand.toFixed(3)}</strong>
+          </li>)}</ul>
+        </aside>}
+      </div>
     </main>
   );
 }
