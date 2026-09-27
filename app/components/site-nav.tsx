@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Overview" },
   { href: "/imports", label: "Imports" },
   { href: "/sales", label: "Sales" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function SiteNav() {

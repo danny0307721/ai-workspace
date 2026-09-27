@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LedgerTable, { type LedgerColumn } from "../components/ledger-table";
+import LedgerDashboard from "../components/ledger-dashboard";
 import EntryForm from "../components/entry-form";
 
 type SaleRow = {
@@ -22,14 +23,13 @@ const money = (value: number) => new Intl.NumberFormat(undefined, {
 }).format(value);
 
 const columns: LedgerColumn<SaleRow>[] = [
-  { heading: "Date", className: "date-cell", render: (row) => new Date(row.date).toLocaleDateString() },
-  { heading: "Customer", render: (row) => row.customer || "—" },
+  { heading: "Date", className: "date-cell", render: (row, formatDate) => formatDate(row.date) },
   { heading: "Product", className: "product-cell", render: (row) => row.product },
-  { heading: "Quantity", className: "numeric", render: (row) => Number(row.quantity).toLocaleString(undefined, { maximumFractionDigits: 3 }) },
+  { heading: "Quantity", className: "numeric", render: (row) => Number(row.quantity).toLocaleString(undefined, { maximumFractionDigits: 3 }), summary: (rows) => rows.reduce((total, row) => total + Number(row.quantity), 0).toLocaleString(undefined, { maximumFractionDigits: 3 }) },
   { heading: "Unit price", className: "numeric", render: (row) => money(Number(row.unitPrice)) },
   { heading: "Discount", className: "numeric", render: (row) => money(Number(row.discount)) },
   { heading: "Other cost", className: "numeric", render: (row) => money(Number(row.otherCost)) },
-  { heading: "Revenue", className: "numeric total-cell", render: (row) => money(Number(row.quantity) * Number(row.unitPrice) - Number(row.discount)) },
+  { heading: "Revenue", className: "numeric total-cell", render: (row) => money(Number(row.quantity) * Number(row.unitPrice) - Number(row.discount)), summary: (rows) => money(rows.reduce((total, row) => total + Number(row.quantity) * Number(row.unitPrice) - Number(row.discount), 0)) },
   { heading: "Notes", className: "notes-cell", render: (row) => row.notes || "—" },
 ];
 
@@ -58,14 +58,20 @@ export default function SalesPage() {
       </header>
       <button className="primary-action" onClick={() => setModalOpen(true)}>+ Add sale</button>
     </div>
-    <LedgerTable<SaleRow>
-      title="Sales"
-      endpoint="/api/sales"
-      refreshKey={refreshKey}
-      searchPlaceholder="Customer, product, or note"
-      searchFields={(row) => [row.customer ?? "", row.product, row.notes ?? ""]}
-      columns={columns}
-    />
+    <div className="ledger-workspace">
+      <LedgerTable<SaleRow>
+        title="Sales"
+        endpoint="/api/sales"
+        treeLabel="Customers"
+        treeField={(row) => row.customer || "Unassigned customer"}
+        refreshKey={refreshKey}
+        searchPlaceholder="Customer, product, or note"
+        searchFields={(row) => [row.customer ?? "", row.product, row.notes ?? ""]}
+        dateField={(row) => row.date}
+        columns={columns}
+      />
+      <LedgerDashboard refreshKey={refreshKey} />
+    </div>
     {modalOpen && <div className="modal-backdrop" onMouseDown={(event) => {
       if (event.target === event.currentTarget) setModalOpen(false);
     }}>

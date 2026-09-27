@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { generateSalesTips } from "@/lib/llm";
 import { calculateLedgerProfit } from "@/lib/profit";
 
-export async function GET() {
+export async function GET(request: Request) {
   const [imports, sales] = await Promise.all([
     db.importEntry.findMany(),
     db.saleEntry.findMany()
@@ -24,6 +24,10 @@ export async function GET() {
       otherCost: Number(row.otherCost),
     }))
   );
+
+  if (new URL(request.url).searchParams.has("summaryOnly")) {
+    return Response.json({ summary });
+  }
 
   let tips = null;
   try { tips = await generateSalesTips({ summary }); } catch {}

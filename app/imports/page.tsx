@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LedgerTable, { type LedgerColumn } from "../components/ledger-table";
+import LedgerDashboard from "../components/ledger-dashboard";
 import EntryForm from "../components/entry-form";
 
 type ImportRow = {
@@ -22,14 +23,13 @@ const money = (value: number) => new Intl.NumberFormat(undefined, {
 }).format(value);
 
 const columns: LedgerColumn<ImportRow>[] = [
-  { heading: "Date", className: "date-cell", render: (row) => new Date(row.date).toLocaleDateString() },
-  { heading: "Supplier", render: (row) => row.supplier },
+  { heading: "Date", className: "date-cell", render: (row, formatDate) => formatDate(row.date) },
   { heading: "Product", className: "product-cell", render: (row) => row.product },
-  { heading: "Quantity", className: "numeric", render: (row) => Number(row.quantity).toLocaleString(undefined, { maximumFractionDigits: 3 }) },
+  { heading: "Quantity", className: "numeric", render: (row) => Number(row.quantity).toLocaleString(undefined, { maximumFractionDigits: 3 }), summary: (rows) => rows.reduce((total, row) => total + Number(row.quantity), 0).toLocaleString(undefined, { maximumFractionDigits: 3 }) },
   { heading: "Unit cost", className: "numeric", render: (row) => money(Number(row.unitCost)) },
   { heading: "Shipping", className: "numeric", render: (row) => money(Number(row.shippingCost)) },
   { heading: "Tax", className: "numeric", render: (row) => money(Number(row.taxCost)) },
-  { heading: "Total cost", className: "numeric total-cell", render: (row) => money(Number(row.quantity) * Number(row.unitCost) + Number(row.shippingCost) + Number(row.taxCost)) },
+  { heading: "Total cost", className: "numeric total-cell", render: (row) => money(Number(row.quantity) * Number(row.unitCost) + Number(row.shippingCost) + Number(row.taxCost)), summary: (rows) => money(rows.reduce((total, row) => total + Number(row.quantity) * Number(row.unitCost) + Number(row.shippingCost) + Number(row.taxCost), 0)) },
   { heading: "Notes", className: "notes-cell", render: (row) => row.notes || "—" },
 ];
 
@@ -58,14 +58,20 @@ export default function ImportsPage() {
       </header>
       <button className="primary-action" onClick={() => setModalOpen(true)}>+ Add import</button>
     </div>
-    <LedgerTable<ImportRow>
-      title="Imports"
-      endpoint="/api/imports"
-      refreshKey={refreshKey}
-      searchPlaceholder="Supplier, product, or note"
-      searchFields={(row) => [row.supplier, row.product, row.notes ?? ""]}
-      columns={columns}
-    />
+    <div className="ledger-workspace">
+      <LedgerTable<ImportRow>
+        title="Imports"
+        endpoint="/api/imports"
+        treeLabel="Suppliers"
+        treeField={(row) => row.supplier}
+        refreshKey={refreshKey}
+        searchPlaceholder="Supplier, product, or note"
+        searchFields={(row) => [row.supplier, row.product, row.notes ?? ""]}
+        dateField={(row) => row.date}
+        columns={columns}
+      />
+      <LedgerDashboard refreshKey={refreshKey} />
+    </div>
     {modalOpen && <div className="modal-backdrop" onMouseDown={(event) => {
       if (event.target === event.currentTarget) setModalOpen(false);
     }}>
