@@ -11,6 +11,8 @@ type LedgerSummary = {
   estimatedMarginPct: number;
 };
 
+type LedgerDateRange = { start: string; end: string } | null;
+
 const money = (value: number) => new Intl.NumberFormat(undefined, {
   style: "currency",
   currency: "USD",
@@ -20,7 +22,7 @@ const quantity = (value: number) => new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
 }).format(value);
 
-export default function LedgerDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function LedgerDashboard({ refreshKey = 0, dateRange = null }: { refreshKey?: number; dateRange?: LedgerDateRange }) {
   const [summary, setSummary] = useState<LedgerSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -32,7 +34,8 @@ export default function LedgerDashboard({ refreshKey = 0 }: { refreshKey?: numbe
       setLoading(true);
       setError(false);
       try {
-        const response = await fetch("/api/analytics?summaryOnly=1", { cache: "no-store" });
+        const query = dateRange ? `&start=${dateRange.start}&end=${dateRange.end}` : "";
+        const response = await fetch(`/api/analytics?summaryOnly=1${query}`, { cache: "no-store" });
         if (!response.ok) throw new Error("Request failed");
         const data = await response.json() as { summary: LedgerSummary };
         if (active) setSummary(data.summary);
@@ -45,13 +48,13 @@ export default function LedgerDashboard({ refreshKey = 0 }: { refreshKey?: numbe
 
     void loadSummary();
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [dateRange, refreshKey]);
 
   return <aside className="panel ledger-dashboard" aria-label="Ledger dashboard">
     <div className="dashboard-heading">
       <div>
         <h2>Ledger totals</h2>
-        <p>All recorded entries</p>
+        <p>{dateRange ? `${dateRange.start} to ${dateRange.end}` : "All recorded entries"}</p>
       </div>
       {loading && <span className="dashboard-status">Updating</span>}
     </div>

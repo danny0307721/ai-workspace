@@ -1,41 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import LedgerTable, { type LedgerColumn } from "../components/ledger-table";
+import { useEffect, useState, type CSSProperties } from "react";
+import CombinedLedger, { type LedgerDateRange } from "../components/combined-ledger";
 import LedgerDashboard from "../components/ledger-dashboard";
 import EntryForm from "../components/entry-form";
 
-type ImportRow = {
-  id: string;
-  date: string;
-  supplier: string;
-  product: string;
-  quantity: number | string;
-  unitCost: number | string;
-  shippingCost: number | string;
-  taxCost: number | string;
-  notes: string | null;
-};
-
-const money = (value: number) => new Intl.NumberFormat(undefined, {
-  style: "currency",
-  currency: "USD",
-}).format(value);
-
-const columns: LedgerColumn<ImportRow>[] = [
-  { heading: "Date", className: "date-cell", render: (row, formatDate) => formatDate(row.date) },
-  { heading: "Product", className: "product-cell", render: (row) => row.product },
-  { heading: "Quantity", className: "numeric", render: (row) => Number(row.quantity).toLocaleString(undefined, { maximumFractionDigits: 3 }), summary: (rows) => rows.reduce((total, row) => total + Number(row.quantity), 0).toLocaleString(undefined, { maximumFractionDigits: 3 }) },
-  { heading: "Unit cost", className: "numeric", render: (row) => money(Number(row.unitCost)) },
-  { heading: "Shipping", className: "numeric", render: (row) => money(Number(row.shippingCost)) },
-  { heading: "Tax", className: "numeric", render: (row) => money(Number(row.taxCost)) },
-  { heading: "Total cost", className: "numeric total-cell", render: (row) => money(Number(row.quantity) * Number(row.unitCost) + Number(row.shippingCost) + Number(row.taxCost)), summary: (rows) => money(rows.reduce((total, row) => total + Number(row.quantity) * Number(row.unitCost) + Number(row.shippingCost) + Number(row.taxCost), 0)) },
-  { heading: "Notes", className: "notes-cell", render: (row) => row.notes || "—" },
-];
-
 export default function ImportsPage() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalKind, setModalKind] = useState<"imports" | "sales">("imports");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [dateRange, setDateRange] = useState<LedgerDateRange>(null);
+  const [dashboardWidth, setDashboardWidth] = useState(290);
+  const [resizingDashboard, setResizingDashboard] = useState(false);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -50,41 +26,65 @@ export default function ImportsPage() {
     };
   }, [modalOpen]);
 
+  useEffect(() => {
+    if (!resizingDashboard) return;
+    const handlePointerMove = (event: PointerEvent) => {
+      const workspace = document.querySelector<HTMLElement>(".ledger-workspace");
+      if (!workspace) return;
+      const bounds = workspace.getBoundingClientRect();
+      setDashboardWidth(Math.min(480, Math.max(220, bounds.right - event.clientX)));
+    };
+    const stopResizing = () => setResizingDashboard(false);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResizing);
+    document.body.classList.add("is-resizing-dashboard");
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResizing);
+      document.body.classList.remove("is-resizing-dashboard");
+    };
+  }, [resizingDashboard]);
+
+  function adjustDashboardWidth(amount: number) {
+    setDashboardWidth((width) => Math.min(480, Math.max(220, width + amount)));
+  }
+
   return <main>
-    <div className="page-title-row">
-      <header className="page-heading">
-        <h1>Imports</h1>
-        <p>Supplier purchases and landed costs.</p>
-      </header>
-      <button className="primary-action" onClick={() => setModalOpen(true)}>+ Add import</button>
-    </div>
-    <div className="ledger-workspace">
-      <LedgerTable<ImportRow>
-        title="Imports"
-        endpoint="/api/imports"
-        treeLabel="Suppliers"
-        treeField={(row) => row.supplier}
-        refreshKey={refreshKey}
-        searchPlaceholder="Supplier, product, or note"
-        searchFields={(row) => [row.supplier, row.product, row.notes ?? ""]}
-        dateField={(row) => row.date}
-        columns={columns}
+    <div className="ledger-workspace" style={{ "--dashboard-width": `${dashboardWidth}px` } as CSSProperties}>
+      <CombinedLedger refreshKey={refreshKey} onAddImport={() => { setModalKind("imports"); setModalOpen(true); }} onAddSale={() => { setModalKind("sales"); setModalOpen(true); }} onDateRangeChange={setDateRange} />
+      <div
+        role="separator"
+        tabIndex={0}
+        className="dashboard-resizer"
+        aria-label="Resize dashboard sidebar"
+        aria-orientation="vertical"
+        aria-valuemin={220}
+        aria-valuemax={480}
+        aria-valuenow={dashboardWidth}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          setResizingDashboard(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") adjustDashboardWidth(20);
+          if (event.key === "ArrowRight") adjustDashboardWidth(-20);
+        }}
       />
-      <LedgerDashboard refreshKey={refreshKey} />
+      <LedgerDashboard refreshKey={refreshKey} dateRange={dateRange} />
     </div>
     {modalOpen && <div className="modal-backdrop" onMouseDown={(event) => {
       if (event.target === event.currentTarget) setModalOpen(false);
     }}>
-      <section className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="new-import-title">
+      <section className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="new-entry-title">
         <div className="modal-heading">
           <div>
-            <h2 id="new-import-title">New import</h2>
-            <p>Record a supplier purchase and its landed costs.</p>
+            <h2 id="new-entry-title">{modalKind === "imports" ? "New import" : "New sale"}</h2>
+            <p>{modalKind === "imports" ? "Record a supplier purchase and its landed costs." : "Record a customer sale, discount, and other costs."}</p>
           </div>
           <button className="modal-close" type="button" aria-label="Close dialog" onClick={() => setModalOpen(false)}>×</button>
         </div>
         <EntryForm
-          kind="imports"
+          kind={modalKind}
           onSaved={() => { setModalOpen(false); setRefreshKey((key) => key + 1); }}
           onCancel={() => setModalOpen(false)}
         />

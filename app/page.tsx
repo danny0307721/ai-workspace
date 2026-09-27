@@ -14,18 +14,49 @@ type Summary = {
   products: { product: string; revenue: number; quantity: number; estimatedCOGS: number; otherCosts: number; estimatedProfit: number }[];
 };
 
+type ImportRecommendation = {
+  product: string;
+  urgency: string;
+  reason: string;
+  suggestedQuantity: number | string;
+};
+
+type InventoryItem = {
+  product: string;
+  importedQuantity: number;
+  soldQuantity: number;
+  onHand: number;
+  stockStatus: string;
+};
+
 export default function Home() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [tips, setTips] = useState<any>(null);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function refresh() {
-    const response = await fetch("/api/analytics", { cache: "no-store" });
-    const data = await response.json();
-    setSummary(data.summary);
-    setTips(data.tips);
+    setAnalyzing(true);
+    try {
+      const response = await fetch("/api/analytics", { cache: "no-store" });
+      if (!response.ok) throw new Error("Analysis failed");
+      const data = await response.json();
+      setSummary(data.summary);
+      setTips(data.tips);
+      setInventory(data.inventory ?? []);
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   useEffect(() => { refresh(); }, []);
+
+  const productHighlights = summary && summary.products.length > 0 ? {
+    bestSelling: [...summary.products].sort((left, right) => right.quantity - left.quantity)[0],
+    highestProfit: [...summary.products].sort((left, right) => right.estimatedProfit - left.estimatedProfit)[0],
+    slowestSelling: [...summary.products].sort((left, right) => left.quantity - right.quantity)[0],
+    lowestProfit: [...summary.products].sort((left, right) => left.estimatedProfit - right.estimatedProfit)[0],
+  } : null;
 
   const money = (value: number) => new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -38,9 +69,7 @@ export default function Home() {
         <h1>Overview</h1>
         <p>Import and sales performance at a glance.</p>
       </header>
-      <section className="actions">
-        <button onClick={refresh}>Analyze</button>
-      </section>
+      {analyzing && <p className="analysis-status" role="status" aria-live="polite">Thinking...</p>}
       {summary && <section className="grid">
         <Card title="Sales revenue" value={money(summary.sales.revenue)} />
         <Card title="Estimated profit" value={money(summary.estimatedProfit)} />
@@ -50,27 +79,28 @@ export default function Home() {
       {summary && <p className="calculation-note">
         Profit estimate uses weighted-average landed cost by product, including import shipping and tax, plus recorded sale costs. It does not model inventory timing.
       </p>}
+      {inventory.length > 0 && <section className="panel">
+        <h2>Lowest stock</h2>
+        <ul className="stock-list">{inventory.slice(0, 10).map((item) => <li key={item.product}>
+          <span>{item.product}</span><strong>{item.onHand.toFixed(3)}</strong>
+        </li>)}</ul>
+      </section>}
+      {productHighlights && <section className="product-highlights">
+        <div className="product-highlight"><span>Best-selling product</span><strong>{productHighlights.bestSelling.product}</strong><small>{productHighlights.bestSelling.quantity.toFixed(3)} units sold</small></div>
+        <div className="product-highlight"><span>Highest-profit product</span><strong>{productHighlights.highestProfit.product}</strong><small>{money(productHighlights.highestProfit.estimatedProfit)} estimated profit</small></div>
+        <div className="product-highlight"><span>Slowest-selling product</span><strong>{productHighlights.slowestSelling.product}</strong><small>{productHighlights.slowestSelling.quantity.toFixed(3)} units sold</small></div>
+        <div className="product-highlight"><span>Lowest-profit product</span><strong>{productHighlights.lowestProfit.product}</strong><small>{money(productHighlights.lowestProfit.estimatedProfit)} estimated profit</small></div>
+      </section>}
       {summary && (summary.uncostedProducts.length > 0 || summary.quantityShortfalls.length > 0) && <section className="cost-warning" role="status">
         <strong>Profit estimate may be incomplete.</strong>
         {summary.uncostedProducts.length > 0 && <p>No import cost is recorded for: {summary.uncostedProducts.join(", ")}.</p>}
         {summary.quantityShortfalls.length > 0 && <p>Sales exceed recorded purchases for: {summary.quantityShortfalls.map((item) => item.product).join(", ")}.</p>}
       </section>}
-      {summary && <section className="panel">
-        <h2>Products</h2>
-        <table><thead><tr><th>Product</th><th>Units sold</th><th>Revenue</th><th>Inventory COGS</th><th>Other sale costs</th><th>Estimated profit</th></tr></thead>
-          <tbody>{summary.products.map((product) => <tr key={product.product}>
-            <td>{product.product}</td><td>{product.quantity.toFixed(2)}</td><td>{money(product.revenue)}</td>
-            <td>{money(product.estimatedCOGS)}</td><td>{money(product.otherCosts)}</td><td>{money(product.estimatedProfit)}</td>
-          </tr>)}</tbody>
-        </table>
-      </section>}
       {tips && <section className="panel">
-        <h2>AI sales tips</h2>
-        <p>{tips.summary}</p>
-        <h3>Opportunities</h3><ul>{(tips.opportunities ?? []).map((item: string, index: number) => <li key={index}>{item}</li>)}</ul>
-        <h3>Risks</h3><ul>{(tips.risks ?? []).map((item: string, index: number) => <li key={index}>{item}</li>)}</ul>
-        <h3>Recommended actions</h3><ul>{(tips.actions ?? []).map((item: string, index: number) => <li key={index}>{item}</li>)}</ul>
-        <h3>Forecast</h3><pre>{JSON.stringify(tips.forecast ?? [], null, 2)}</pre>
+        <h2>AI import recommendations</h2>
+        {(tips.importRecommendations ?? []).length > 0
+          ? <ul>{(tips.importRecommendations as ImportRecommendation[]).map((item, index) => <li key={index}><strong>{item.product}</strong> ({item.urgency}): {item.reason} Suggested quantity: {item.suggestedQuantity}.</li>)}</ul>
+          : <p>No import recommendations from the current stock data.</p>}
       </section>}
     </main>
   );

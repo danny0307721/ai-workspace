@@ -142,11 +142,11 @@ export default function LedgerTable<Row extends { id: string }>({
     * (settings.fontSize === "small" ? 0.9 : settings.fontSize === "large" ? 1.12 : 1);
   const matchingRows = rows.filter((row) => {
     const matchesSearch = searchFields(row).some((value) => value.toLowerCase().includes(normalizedSearch));
-    const rowDate = new Date(dateField(row)).toISOString().slice(0, 10);
+    const rowDate = toDateInputValue(new Date(dateField(row)));
     return matchesSearch && (!dateRange || (rowDate >= dateRange.start && rowDate <= dateRange.end));
   });
   const filteredRows = matchingRows.filter((row) => !selectedTreeItem || treeField(row) === selectedTreeItem);
-  const treeItems = [...new Set(rows.map(treeField).filter(Boolean))].sort((left, right) => left.localeCompare(right));
+  const treeItems = [...new Set(matchingRows.map(treeField).filter(Boolean))].sort((left, right) => left.localeCompare(right));
   const treeCounts = new Map<string, number>();
   matchingRows.forEach((row) => {
     const value = treeField(row);
