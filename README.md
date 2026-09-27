@@ -7,7 +7,10 @@ Ledger AI is a modern web application built with Next.js that helps businesses m
 Designed to simplify business operations, Ledger AI brings inventory management, financial tracking, and intelligent sales insights together in one platform.
 
 ## Screenshots
-
+	[Overview] https://github.com/danny0307721/ai-workspace/blob/main/screenshot/Overview.png
+  [Ledger] https://github.com/danny0307721/ai-workspace/blob/main/screenshot/Ledger.png
+  [Settings] https://github.com/danny0307721/ai-workspace/blob/main/screenshot/Settings.png
+  
 ## Features
 ### Unified Import and Sales Ledger
 
