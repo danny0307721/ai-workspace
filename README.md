@@ -1,51 +1,133 @@
 # Ledger AI
 
-Next.js + TypeScript + MySQL + Ollama starter for import/sales ledgers, profit calculation, and AI sales tips.
+Next.js + TypeScript + MySQL + Ollama starter for import/sales ledgers, profit calculation, and AI-Powered Inventory, Sales & Profit Management.
 
-## Run
 
-1. Install Node.js 20+ and Docker.
-2. Copy `.env.example` to `.env`.
-3. Start services:
+Ledger AI is a modern web application built with Next.js that helps businesses manage inventory, track purchases and sales, calculate profitability, and gain actionable insights through AI-powered analysis.
+Designed to simplify business operations, Ledger AI brings inventory management, financial tracking, and intelligent sales insights together in one platform.
 
-```bash
-docker compose up -d
-```
+## Screenshots
 
-4. Install packages:
+## Features
+### Unified Import and Sales Ledger
 
-```bash
-npm install
-npx prisma generate
-npx prisma db push
-```
+The application combines imports and sales into a single ledger view.
 
-To populate the ledger with synthetic demo data, run:
+- Record supplier purchases and customer sales
+- View imports and sales together
+- Filter entries by day, week, month, year, or all time
+- Search by supplier, customer, product, or notes
+- Sort and filter entries through the expandable tree navigation
+- Browse suppliers under the Imports branch
+- Browse customers under the Sales branch
+- View only suppliers or customers active during the selected period
+- Add imports and sales through dedicated entry forms
 
-```bash
-npm run db:seed
-```
+### Resizable Layout
 
-This inserts 1,000 imports and 1,000 sales. Set `FAKE_DATA_COUNT` to change the number inserted in each table, for example `FAKE_DATA_COUNT=2500 npm run db:seed` (PowerShell: `$env:FAKE_DATA_COUNT=2500; npm run db:seed`). Each run appends additional rows.
+The interface includes adjustable splitters that allow users to customize the workspace.
 
-To update prices on existing synthetic rows without inserting more data, set `FAKE_DATA_COUNT=0` (PowerShell: `$env:FAKE_DATA_COUNT=0; npm run db:seed`).
+- Resize the tree navigation panel
+- Resize the right-hand dashboard
+- Adjust panel widths with the mouse
+- Adjust panel widths with the keyboard
+- Automatically switch to a stacked layout on smaller screens
 
-5. Pull a local model:
+### Date-Based Dashboard
 
-```bash
-docker exec -it $(docker ps -qf name=ollama) ollama pull llama3.1:8b
-```
+The dashboard recalculates its figures according to the selected date range.
 
-6. Start Next.js:
+It displays:
 
-```bash
-npm run dev
-```
+- Total import expenditure
+- Total sales revenue
+- Imported quantity
+- Sold quantity
+- Estimated inventory cost of goods sold
+- Other sales costs
+- Estimated profit
+- Estimated profit margin
+- The number of imports and sales included in the selected period
 
-Open http://localhost:3000.
 
-## Notes
+### Inventory Overview
 
-The profit estimate uses product-level weighted-average landed import cost (unit cost plus shipping and tax), then subtracts recorded other sale costs. It uses all recorded purchases and sales, so it does not model inventory timing or individual purchase lots. For production accounting, add dated inventory valuation, currency/tax rules, returns, stock adjustments, and audit trails.
+The Overview page shows the products with the lowest stock levels.
 
-The AI forecast is advisory: it consumes ledger aggregates and must not be treated as guaranteed predictions.
+For each product, it displays:
+
+- Product name
+- Current stock quantity
+
+The list is ordered from the lowest stock level to the highest. Products with negative stock are considered out of stock.
+
+
+### Product Performance Insights
+
+The Overview page highlights key product performance metrics:
+
+- Best-selling product
+- Highest-profit product
+- Slowest-selling product
+- Lowest-profit product
+
+These insights are calculated from recorded sales and estimated product costs.
+
+### AI Import Recommendations
+
+Ledger AI automatically analyzes inventory and sales data when the Overview page loads.
+
+The AI identifies products that may need to be imported and provides:
+
+- Product name
+- Urgency level
+- Reason for the recommendation
+- Suggested import quantity
+
+The recommendation system prioritizes products with zero or low stock. If the local AI model is unavailable, the application uses inventory-based fallback logic to provide recommendations immediately.
+
+### Profit Calculation
+
+Profit is estimated using a weighted-average landed cost for each product.
+
+The calculation includes:
+
+- Unit purchase cost
+- Shipping costs
+- Tax costs
+- Sales revenue
+- Discounts
+- Other sales costs
+
+The application also identifies products where sales exceed recorded purchases.
+
+### Settings
+
+Users can customize the application through the Settings page.
+
+Available settings include:
+
+- Date format
+- Font size
+- Table density
+
+### Responsive Design
+
+The interface is designed for desktop and mobile use.
+
+- Desktop layouts use resizable sidebars and panels
+- Mobile layouts stack content vertically
+- Tables and controls remain usable on smaller screens
+- Navigation and forms adapt to the available screen width
+
+## Technology Stack
+
+- Next.js
+- React
+- TypeScript
+- Prisma
+- MySQL
+- Ollama
+- Zod
+
+The AI recommendations are advisory and should be reviewed before making purchasing decisions.
